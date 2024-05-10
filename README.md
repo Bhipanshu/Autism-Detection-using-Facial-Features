@@ -31,7 +31,7 @@ This file first loads all the three classification models trained using VisionTr
 
 Then the extracted images are passed through each individual models to predict that the particular eyes,nose and lips are Autistic or non-autistic.
 
-The result are saved in Results folder for both autistic and non-autistic image folder prdictions.
+After running the test_main.py file, the result would be saved in Results folder for both autistic and non-autistic image folder prdictions.
 
 Each image contains a bounding boxes around their eyes,nose and lips with the predicted outcome over it.
 Results example are as follows.
