@@ -35,5 +35,5 @@ The result are saved in Results folder for both autistic and non-autistic image 
 
 Each image contains a bounding boxes around their eyes,nose and lips with the predicted outcome over it.
 
-<img src='Data/Train/Lips/autistic_lips/0005.jpg' width=384>
+<img src='results.png' width=384>
 
