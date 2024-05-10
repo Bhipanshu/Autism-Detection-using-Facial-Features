@@ -34,6 +34,7 @@ Then the extracted images are passed through each individual models to predict t
 The result are saved in Results folder for both autistic and non-autistic image folder prdictions.
 
 Each image contains a bounding boxes around their eyes,nose and lips with the predicted outcome over it.
+Results example are as follows.
 
-<img src='results.png' width=384>
 
+<p align="center"> <img src="results.png" width="384"> </p> 
