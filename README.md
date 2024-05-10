@@ -1,4 +1,4 @@
-AUTISM DETECTION USING DIFFERENT FACIAL FEATURES
+## AUTISM DETECTION USING DIFFERENT FACIAL FEATURES
 
 
 • This repository contains autism detection using different facial features based upon classification.
@@ -10,7 +10,7 @@ AUTISM DETECTION USING DIFFERENT FACIAL FEATURES
 We have used Dlib to extract these facial features and
 stored the extracted datasets in the Data folder. 
 
-DATA FOLDER
+#### DATA FOLDER
 • This folder consists of 4 subfolders-
     - Faces - Contains the whole dataset of autistic and non-autistic children faces divided into Test,Train and Valid.
     - Train - Contains the test images for particular features of eyes,nose and lips.
@@ -23,10 +23,10 @@ The saved models has been placed in model_checkpoint.
 
 
 
-For testing the results of the model, run the following command.
-
-• python test_main.py
-
+• For testing the results of the model, run the following command.
+```bash
+test_main.py
+```
 This file first loads all the three classification models trained using VisionTransformer architecture then uses Dlib facial features extractor to extract landmarks for eyes,nose and lips. 
 
 Then the extracted images are passed through each individual models to predict that the particular eyes,nose and lips are Autistic or non-autistic.
