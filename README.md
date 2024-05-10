@@ -17,6 +17,8 @@ stored the extracted datasets in the Data folder.
     - Valid - Contains the images for validation for particular features of eyes,nose and lips.
     - Test - Contains the images for testing for particular features of eyes, nose and lips.
 
+<p align="center"> <img src="Features_Images/Autistic features.png" width="384"> </p> 
+<p align="center"> <img src="Features_Images/Non-autistic features.png" width="384"> </p> 
 
 For Autistic and non-Autistic Eyes,Nose and Lips classification we have used VisionTransformer with pretrained weights in pretrained_weights directory.
 The saved models has been placed in model_checkpoint.
@@ -37,4 +39,4 @@ Each image contains a bounding boxes around their eyes,nose and lips with the pr
 Results example are as follows.
 
 
-<p align="center"> <img src="results.png" width="384"> </p> 
+<p align="center"> <img src="Features_Images/results.png" width="384"> </p> 
