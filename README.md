@@ -27,7 +27,7 @@ The saved models has been placed in model_checkpoint.
 
 • For testing the results of the model, run the following command.
 ```bash
-test_main.py
+python test_main.py
 ```
 This file first loads all the three classification models trained using VisionTransformer architecture then uses Dlib facial features extractor to extract landmarks for eyes,nose and lips. 
 
