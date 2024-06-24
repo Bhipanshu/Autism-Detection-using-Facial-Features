@@ -4,42 +4,38 @@ import os
 import cv2
 import dlib
 from PIL import Image
-import numpy as np
 import cv2
 import os
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
-
 import torchvision.transforms as transforms
-import torchvision.datasets as datasets
-from model_files.modeling import VisionTransformer, CONFIGS
-from torch.utils.data import DataLoader, RandomSampler, DistributedSampler, SequentialSampler
-from sklearn.metrics import confusion_matrix
+from models.modeling import VisionTransformer, CONFIGS
+from openpyxl import Workbook
+import os
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 config = CONFIGS['ViT-B_16']
 
 model_eyes = VisionTransformer(config,256, zero_head=True, num_classes=2)
 model_path = './model_checkpoint/eyes_checkpoint.bin'
-state_dict = torch.load(model_path)
+state_dict = torch.load(model_path,map_location=device)
 model_eyes.load_state_dict(state_dict)
 model_eyes.to(device)
 
 model_nose = VisionTransformer(config,256, zero_head=True, num_classes=2)
 model_nose.to(device)
 model_path = './model_checkpoint/nose_checkpoint.bin'
-state_dict = torch.load(model_path)
+state_dict = torch.load(model_path,map_location=device)
 model_nose.load_state_dict(state_dict)
 
 model_lips = VisionTransformer(config,256, zero_head=True, num_classes=2)
 model_lips.to(device)
 model_path ='./model_checkpoint/lips_checkpoint.bin'
-state_dict = torch.load(model_path)
+state_dict = torch.load(model_path,map_location=device)
 model_lips.load_state_dict(state_dict)
 
 predictor = dlib.shape_predictor("./model_checkpoint/shape_predictor_68_face_landmarks.dat")
+
 
 transform_train = transforms.Compose([
     transforms.RandomResizedCrop((256, 256), scale=(0.05, 1.0)),
@@ -61,6 +57,14 @@ output_folder = 'Results/autistic_output'
 
 os.makedirs(output_folder, exist_ok=True)
 
+
+filename1 = 'output_autistic.xlsx'
+wb = Workbook()
+ws = wb.active
+ws.append(['Actual','Predicted'])
+ws.append(['Filename',' ', 'Eyes','Eyes_logits', 'Nose','Nose_logits', 'Lips','Lips_logits'])
+
+
 # Loop through all the files in the input folder
 for filename in os.listdir(input_folder):
         if filename.endswith('.jpg'):
@@ -105,8 +109,8 @@ for filename in os.listdir(input_folder):
                         image = Image.fromarray(image)
                         image = transform_train(image).unsqueeze(0).to(device)
                         #passing through the model
-                        logits_face = model_eyes(image)[0]
-                        logits_face = F.softmax(logits_face, dim=-1)
+                        logits_eyes = model_eyes(image)[0]
+                        logits_eyes = F.softmax(logits_eyes, dim=-1)
 
 
                         #for nose
@@ -122,45 +126,106 @@ for filename in os.listdir(input_folder):
                         image = Image.fromarray(image)
                         image = transform_train(image).unsqueeze(0).to(device)
                         #passing through the model
-                        logits_face = model_lips(image)[0]
-                        logits_face = F.softmax(logits_face, dim=-1)
+                        logits_lips = model_lips(image)[0]
+                        logits_lips = F.softmax(logits_lips, dim=-1)
 
                         #for eyes
-                        if logits_face[0][0] > 0.5:
-                                cv2.putText(image_save, 'autistic', (x_min_face, y_min_face - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'autistic eyes')
+                        if logits_eyes[0][0] > 0.5:
+                                text = 'autistic'
+                                logit_face_print = logits_eyes[0][0]
+                                eyes = 'autistic'
                         else:
-                                cv2.putText(image_save, 'non-autistic', (x_min_face, y_min_face - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'non-autistic eyes')
+                                text = 'non-autistic'
+                                logit_face_print = (1-logits_eyes[0][0])
+                                eyes = 'non-autistic'
+                        text += f' {logit_face_print*100:.2f}%'
+                        text_width, text_height = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)[0]
+                        
+                        rect_width = text_width + 10
+                        rect_height = text_height + 20
+                        
+                        rect_x = max(0, x_min_face)
+                        rect_y = max(0, y_min_face - rect_height)
+                        rect_x_end = min(image_save.shape[1], rect_x + rect_width)
+                        rect_y_end = min(image_save.shape[0], rect_y + rect_height)
+                        cv2.rectangle(image_save, (rect_x, rect_y), (rect_x_end, rect_y_end), (255, 0, 255), -1)
+
+                        text_x = rect_x + int((rect_width - text_width) / 2)
+                        text_y = rect_y + int((rect_height + text_height) / 2)
+                        cv2.putText(image_save, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 0), 2, cv2.LINE_AA)
+                        print(filename + ' ' + text + ' eyes')
 
                         #for nose
                         if logits_nose[0][0] > 0.5:
-                                cv2.putText(image_save, 'autistic', (x_min_nose, y_min_nose - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'autistic nose')
+                                text = 'autistic'
+                                logit_nose_print = logits_nose[0][0]
+                                nose = 'autistic'
                         else:
-                                cv2.putText(image_save, 'non-autistic', (x_min_nose, y_min_nose - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'non-autistic nose')
+                                text = 'non-autistic'
+                                logit_nose_print = (1-logits_nose[0][0])
+                                nose = 'non-autistic'
+                        text += f' {logit_nose_print*100:.2f}%'
+                        text_width, text_height = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)[0]
+                        rect_width = text_width + 10
+                        rect_height = text_height + 20
+                        rect_x = max(0, x_min_nose)
+                        rect_y = max(0, y_min_nose - rect_height)
+                        rect_x_end = min(image_save.shape[1], rect_x + rect_width)
+                        rect_y_end = min(image_save.shape[0], rect_y + rect_height)
+                        cv2.rectangle(image_save, (rect_x, rect_y), (rect_x_end, rect_y_end), (0, 255, 255), -1)
+                        text_x = rect_x + int((rect_width - text_width) / 2)
+                        text_y = rect_y + int((rect_height + text_height) / 2)
+                        cv2.putText(image_save, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 0), 2, cv2.LINE_AA)
+                        print(filename + ' ' + text + ' nose')
 
                         #for lips
-                        if logits_face[0][0] > 0.5:
-                                cv2.putText(image_save, 'autistic', (x_min_lips, y_min_lips - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'autistic lips')
+                        if logits_lips[0][0] > 0.5:
+                                text = 'autistic'
+                                logit_lips_print = logits_lips[0][0]
+                                lips = 'autistic'
                         else:
-                                cv2.putText(image_save, 'non-autistic', (x_min_lips, y_min_lips - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'non-autistic lips')
+                                text = 'non-autistic'
+                                logit_lips_print = (1-logits_lips[0][0])
+                                lips = 'non-autistic'
 
+                        text += f' {logit_lips_print*100:.2f}%'
+                        text_width, text_height = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)[0]
+                        rect_width = text_width + 10
+                        rect_height = text_height + 20
+                        rect_x = max(0, x_min_lips)
+                        rect_y = max(0, y_min_lips - rect_height)
+                        rect_x_end = min(image_save.shape[1], rect_x + rect_width)
+                        rect_y_end = min(image_save.shape[0], rect_y + rect_height)
+                        cv2.rectangle(image_save, (rect_x, rect_y), (rect_x_end, rect_y_end), (255, 255, 0), -1)
+                        text_x = rect_x + int((rect_width - text_width) / 2)
+                        text_y = rect_y + int((rect_height + text_height) / 2)
+                        cv2.putText(image_save, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 0), 2, cv2.LINE_AA)
+                        print(filename + ' ' + text + ' lips')
+
+                        logit_face_print_value = logit_face_print.detach().item() if logit_face_print.requires_grad else logit_face_print.item()
+                        logit_nose_print_value = logit_nose_print.detach().item() if logit_nose_print.requires_grad else logit_nose_print.item()
+                        logit_lips_print_value = logit_lips_print.detach().item() if logit_lips_print.requires_grad else logit_lips_print.item()
+
+                        ws.append([filename, eyes,logit_face_print_value, nose,logit_nose_print_value, lips,logit_lips_print_value])
+                        wb.save(filename1)
+                output_path = os.path.join(output_folder, filename)
+                cv2.imwrite(output_path, image_save)
                 output_path = os.path.join(output_folder, filename)
                 cv2.imwrite(output_path, image_save)
 
 
 
 
-
+filename1 = 'output_non_autistic.xlsx'
+wbb = Workbook()
+wss = wb.active
+wss.append(['Actual','Predicted'])
+wss.append(['Filename','','Eyes','Eyes_logits', 'Nose','Nose_logits', 'Lips','Lips_logits'])
 
 
 # for non-autistic image folder
 input_folder = './Data/Faces/test/non_autistic'
-output_folder = 'Results/non-autistic_output'
+output_folder = 'Results/non_autistic_output'
 
 os.makedirs(output_folder, exist_ok=True)
 
@@ -208,8 +273,8 @@ for filename in os.listdir(input_folder):
                         image = Image.fromarray(image)
                         image = transform_train(image).unsqueeze(0).to(device)
                         #passing through the model
-                        logits_face = model_eyes(image)[0]
-                        logits_face = F.softmax(logits_face, dim=-1)
+                        logits_eyes = model_eyes(image)[0]
+                        logits_eyes = F.softmax(logits_eyes, dim=-1)
 
 
                         #for nose
@@ -225,32 +290,87 @@ for filename in os.listdir(input_folder):
                         image = Image.fromarray(image)
                         image = transform_train(image).unsqueeze(0).to(device)
                         #passing through the model
-                        logits_face = model_lips(image)[0]
-                        logits_face = F.softmax(logits_face, dim=-1)
+                        logits_lips = model_lips(image)[0]
+                        logits_lips = F.softmax(logits_lips, dim=-1)
 
                         #for eyes
-                        if logits_face[0][0] > 0.5:
-                                cv2.putText(image_save, 'autistic', (x_min_face, y_min_face - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'autistic eyes')
+                        if logits_eyes[0][0] > 0.5:
+                                text = 'autistic'
+                                logit_face_print = logits_eyes[0][0]
+                                eyes = 'autistic'
                         else:
-                                cv2.putText(image_save, 'non-autistic', (x_min_face, y_min_face - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'non-autistic eyes')
+                                text = 'non-autistic'
+                                logit_face_print = (1-logits_eyes[0][0])
+                                eyes = 'non-autistic'
+                        text += f' {logit_face_print*100:.2f}%'
+                        text_width, text_height = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)[0]
+                        
+                        rect_width = text_width + 10
+                        rect_height = text_height + 20
+                        
+                        rect_x = max(0, x_min_face)
+                        rect_y = max(0, y_min_face - rect_height)
+                        rect_x_end = min(image_save.shape[1], rect_x + rect_width)
+                        rect_y_end = min(image_save.shape[0], rect_y + rect_height)
+                        cv2.rectangle(image_save, (rect_x, rect_y), (rect_x_end, rect_y_end), (255, 0, 255), -1)
+
+                        text_x = rect_x + int((rect_width - text_width) / 2)
+                        text_y = rect_y + int((rect_height + text_height) / 2)
+                        cv2.putText(image_save, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 0), 2, cv2.LINE_AA)
+                        print(filename + ' ' + text + ' eyes')
 
                         #for nose
                         if logits_nose[0][0] > 0.5:
-                                cv2.putText(image_save, 'autistic', (x_min_nose, y_min_nose - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'autistic nose')
+                                text = 'autistic'
+                                logit_nose_print = logits_nose[0][0]
+                                nose = 'autistic'
                         else:
-                                cv2.putText(image_save, 'non-autistic', (x_min_nose, y_min_nose - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'non-autistic nose')
+                                text = 'non-autistic'
+                                logit_nose_print = (1-logits_nose[0][0])
+                                nose = 'non-autistic'
+                        text += f' {logit_nose_print*100:.2f}%'
+                        text_width, text_height = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)[0]
+                        rect_width = text_width + 10
+                        rect_height = text_height + 20
+                        rect_x = max(0, x_min_nose)
+                        rect_y = max(0, y_min_nose - rect_height)
+                        rect_x_end = min(image_save.shape[1], rect_x + rect_width)
+                        rect_y_end = min(image_save.shape[0], rect_y + rect_height)
+                        cv2.rectangle(image_save, (rect_x, rect_y), (rect_x_end, rect_y_end), (0, 255, 255), -1)
+                        text_x = rect_x + int((rect_width - text_width) / 2)
+                        text_y = rect_y + int((rect_height + text_height) / 2)
+                        cv2.putText(image_save, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 0), 2, cv2.LINE_AA)
+                        print(filename + ' ' + text + ' nose')
 
                         #for lips
-                        if logits_face[0][0] > 0.5:
-                                cv2.putText(image_save, 'autistic', (x_min_lips, y_min_lips - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'autistic lips')
+                        if logits_lips[0][0] > 0.5:
+                                text = 'autistic'
+                                logit_lips_print = logits_lips[0][0]
+                                lips = 'autistic'
                         else:
-                                cv2.putText(image_save, 'non-autistic', (x_min_lips, y_min_lips - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-                                print(filename+ 'non-autistic lips')
+                                text = 'non-autistic'
+                                logit_lips_print = (1-logits_lips[0][0])
+                                lips = 'non-autistic'
 
+                        text += f' {logit_lips_print*100:.2f}%'
+                        text_width, text_height = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)[0]
+                        rect_width = text_width + 10
+                        rect_height = text_height + 20
+                        rect_x = max(0, x_min_lips)
+                        rect_y = max(0, y_min_lips - rect_height)
+                        rect_x_end = min(image_save.shape[1], rect_x + rect_width)
+                        rect_y_end = min(image_save.shape[0], rect_y + rect_height)
+                        cv2.rectangle(image_save, (rect_x, rect_y), (rect_x_end, rect_y_end), (255, 255, 0), -1)
+                        text_x = rect_x + int((rect_width - text_width) / 2)
+                        text_y = rect_y + int((rect_height + text_height) / 2)
+                        cv2.putText(image_save, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 0), 2, cv2.LINE_AA)
+                        print(filename + ' ' + text + ' lips')
+
+                        logit_face_print_value = logit_face_print.detach().item() if logit_face_print.requires_grad else logit_face_print.item()
+                        logit_nose_print_value = logit_nose_print.detach().item() if logit_nose_print.requires_grad else logit_nose_print.item()
+                        logit_lips_print_value = logit_lips_print.detach().item() if logit_lips_print.requires_grad else logit_lips_print.item()
+
+                        wss.append([filename, eyes,logit_face_print_value, nose,logit_nose_print_value, lips,logit_lips_print_value])
+                        wbb.save(filename1)
                 output_path = os.path.join(output_folder, filename)
                 cv2.imwrite(output_path, image_save)
