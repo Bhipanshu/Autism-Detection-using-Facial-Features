@@ -58,11 +58,11 @@ output_folder = 'Results/autistic_output'
 os.makedirs(output_folder, exist_ok=True)
 
 
-filename1 = 'output_autistic.xlsx'
+filename_aut = 'output_autistic.xlsx'
 wb = Workbook()
 ws = wb.active
 ws.append(['Actual','Predicted'])
-ws.append(['Filename',' ', 'Eyes','Eyes_logits', 'Nose','Nose_logits', 'Lips','Lips_logits'])
+ws.append(['Filename','Eyes','Eyes_logits', 'Nose','Nose_logits', 'Lips','Lips_logits'])
 
 
 # Loop through all the files in the input folder
@@ -207,7 +207,7 @@ for filename in os.listdir(input_folder):
                         logit_lips_print_value = logit_lips_print.detach().item() if logit_lips_print.requires_grad else logit_lips_print.item()
 
                         ws.append([filename, eyes,logit_face_print_value, nose,logit_nose_print_value, lips,logit_lips_print_value])
-                        wb.save(filename1)
+                        wb.save(filename_aut)
                 output_path = os.path.join(output_folder, filename)
                 cv2.imwrite(output_path, image_save)
                 output_path = os.path.join(output_folder, filename)
@@ -216,11 +216,11 @@ for filename in os.listdir(input_folder):
 
 
 
-filename1 = 'output_non_autistic.xlsx'
+filename_nonaut = 'output_non_autistic.xlsx'
 wbb = Workbook()
-wss = wb.active
+wss = wbb.active
 wss.append(['Actual','Predicted'])
-wss.append(['Filename','','Eyes','Eyes_logits', 'Nose','Nose_logits', 'Lips','Lips_logits'])
+wss.append(['Filename','Eyes','Eyes_logits', 'Nose','Nose_logits', 'Lips','Lips_logits'])
 
 
 # for non-autistic image folder
@@ -371,6 +371,6 @@ for filename in os.listdir(input_folder):
                         logit_lips_print_value = logit_lips_print.detach().item() if logit_lips_print.requires_grad else logit_lips_print.item()
 
                         wss.append([filename, eyes,logit_face_print_value, nose,logit_nose_print_value, lips,logit_lips_print_value])
-                        wbb.save(filename1)
+                        wbb.save(filename_nonaut)
                 output_path = os.path.join(output_folder, filename)
                 cv2.imwrite(output_path, image_save)
