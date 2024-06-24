@@ -5,6 +5,8 @@ Step 1 - conda create -n aut python=3.12.1
 Step 2 - conda activate aut
 Step 3. - Run command - pip install -r requirements.txt
 
+Step 5 - Run and download apex repository using the below command - ' git clone https://github.com/NVIDIA/apex.git '
+
 Step 4 (Pre-requisite) - Run 'cd apex' to enter the apex folder and then run 'python setup.py install' . After successfull installation of apex for cuda run 'cd ..' to 
 get back to the root directory
 
