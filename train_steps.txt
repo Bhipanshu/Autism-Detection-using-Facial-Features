@@ -1,0 +1,36 @@
+This folder contains the training code for model used for training binary classification model for autistic and non-autistic.
+
+
+Step 1 - conda create -n aut python=3.12.1
+Step 2 - conda activate aut
+Step 3. - Run command - pip install -r requirements.txt
+
+Step 4 (Pre-requisite) - Run 'cd apex' to enter the apex folder and then run 'python setup.py install' . After successfull installation of apex for cuda run 'cd ..' to 
+get back to the root directory
+
+To train the model on particular datasets of Eyes, Nose and Lips, you have to change the path of dataset in data_utils.py
+under IF-ELSE statement -> provide the dataset dir path of respective Eyes, Nose and Lips dataset.
+
+For Eyes - train_root = './Data/Train/Eyes'
+           test_root = './Data/Valid/Eyes'
+
+For Nose - train_root = './Data/Train/Nose'
+           test_root = './Data/Valid/Nose'
+
+For Lips - train_root = './Data/Train/Lips'
+           test_root = './Data/Valid/Lips'
+    
+The images should be divided into two folders namely autistic and non-autistic in each of the Eyes, Nose, Lips folder.
+
+To train on Eyes dataset, use the below command- 
+
+python3 train.py --name Eyes/checkpoint_eyes --pretrained_weights ./pretrained_weights/ViT-B_16.npz --dataset train --model_type ViT-B_16 --fp16 --fp16_opt_level 02
+
+To train on Nose dataset, use the below command- 
+
+python3 train.py --name Nose/checkpoint_nose --pretrained_weights ./pretrained_weights/ViT-B_16.npz --dataset train --model_type ViT-B_16 --fp16 --fp16_opt_level 02
+
+To train on Lips dataset, use the below command- 
+
+python3 train.py --name Lips/checkpoint_lips --pretrained_weights ./pretrained_weights/ViT-B_16.npz --dataset train --model_type ViT-B_16 --fp16 --fp16_opt_level 02
+
